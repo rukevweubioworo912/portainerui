@@ -1,29 +1,26 @@
 
-resource "azurerm_resource_group" "k8s_rg" {
-  name     = var.resource_group_name
-  location = var.location
+data "azurerm_resource_group" "k8s_rg" {
+  name = var.resource_group_name
 }
-
 
 resource "azurerm_virtual_network" "k8s_vnet" {
   name                = "k8s-vnet"
   address_space       = [var.vnet_cidr]
-  location            = azurerm_resource_group.k8s_rg.location
-  resource_group_name = azurerm_resource_group.k8s_rg.name
+  location            = data.azurerm_resource_group.k8s_rg.location
+  resource_group_name = data.azurerm_resource_group.k8s_rg.name
 }
-
 
 resource "azurerm_subnet" "k8s_subnet" {
   name                 = "k8s-subnet"
-  resource_group_name  = azurerm_resource_group.k8s_rg.name
+  resource_group_name  = data.azurerm_resource_group.k8s_rg.name
   virtual_network_name = azurerm_virtual_network.k8s_vnet.name
   address_prefixes     = [var.subnet_cidr]
 }
 
 resource "azurerm_network_security_group" "k8s_nsg" {
   name                = "k8s-nsg"
-  location            = azurerm_resource_group.k8s_rg.location
-  resource_group_name = azurerm_resource_group.k8s_rg.name
+  location            = data.azurerm_resource_group.k8s_rg.location
+  resource_group_name = data.azurerm_resource_group.k8s_rg.name
 
   # SSH from internet
   security_rule {
@@ -38,7 +35,7 @@ resource "azurerm_network_security_group" "k8s_nsg" {
     destination_address_prefix = "*"
   }
 
-  
+  # Kubernetes API Server
   security_rule {
     name                       = "KubeAPI"
     priority                   = 110
@@ -51,7 +48,7 @@ resource "azurerm_network_security_group" "k8s_nsg" {
     destination_address_prefix = "*"
   }
 
- 
+  # NodePort Services
   security_rule {
     name                       = "NodePort"
     priority                   = 120
@@ -64,7 +61,7 @@ resource "azurerm_network_security_group" "k8s_nsg" {
     destination_address_prefix = "*"
   }
 
-
+  # Allow all internal VNet traffic
   security_rule {
     name                       = "AllowVNetInternal"
     priority                   = 130
@@ -77,7 +74,7 @@ resource "azurerm_network_security_group" "k8s_nsg" {
     destination_address_prefix = "*"
   }
 
-  
+  # Allow all outbound
   security_rule {
     name                       = "AllowAllOutbound"
     priority                   = 100
@@ -91,18 +88,18 @@ resource "azurerm_network_security_group" "k8s_nsg" {
   }
 }
 
-
+# Master VM Resources
 resource "azurerm_public_ip" "master_pip" {
   name                = "master-pip"
-  location            = azurerm_resource_group.k8s_rg.location
-  resource_group_name = azurerm_resource_group.k8s_rg.name
+  location            = data.azurerm_resource_group.k8s_rg.location
+  resource_group_name = data.azurerm_resource_group.k8s_rg.name
   allocation_method   = "Static"
 }
 
 resource "azurerm_network_interface" "master_nic" {
   name                = "master-nic"
-  location            = azurerm_resource_group.k8s_rg.location
-  resource_group_name = azurerm_resource_group.k8s_rg.name
+  location            = data.azurerm_resource_group.k8s_rg.location
+  resource_group_name = data.azurerm_resource_group.k8s_rg.name
 
   ip_configuration {
     name                          = "internal"
@@ -119,8 +116,8 @@ resource "azurerm_network_interface_security_group_association" "master_nsg_asso
 
 resource "azurerm_linux_virtual_machine" "master_vm" {
   name                  = "k8s-master"
-  resource_group_name   = azurerm_resource_group.k8s_rg.name
-  location              = azurerm_resource_group.k8s_rg.location
+  resource_group_name   = data.azurerm_resource_group.k8s_rg.name
+  location              = data.azurerm_resource_group.k8s_rg.location
   size                  = var.vm_size_master
   admin_username        = var.admin_username
   admin_password        = var.admin_password
@@ -141,20 +138,20 @@ resource "azurerm_linux_virtual_machine" "master_vm" {
   disable_password_authentication = false
 }
 
-
+# Worker VMs (2)
 resource "azurerm_public_ip" "worker_pip" {
   count               = 2
   name                = "worker-pip-${count.index}"
-  location            = azurerm_resource_group.k8s_rg.location
-  resource_group_name = azurerm_resource_group.k8s_rg.name
+  location            = data.azurerm_resource_group.k8s_rg.location
+  resource_group_name = data.azurerm_resource_group.k8s_rg.name
   allocation_method   = "Static"
 }
 
 resource "azurerm_network_interface" "worker_nic" {
   count               = 2
   name                = "worker-nic-${count.index}"
-  location            = azurerm_resource_group.k8s_rg.location
-  resource_group_name = azurerm_resource_group.k8s_rg.name
+  location            = data.azurerm_resource_group.k8s_rg.location
+  resource_group_name = data.azurerm_resource_group.k8s_rg.name
 
   ip_configuration {
     name                          = "internal"
@@ -173,8 +170,8 @@ resource "azurerm_network_interface_security_group_association" "worker_nsg_asso
 resource "azurerm_linux_virtual_machine" "worker_vm" {
   count                 = 2
   name                  = "k8s-worker-${count.index}"
-  resource_group_name   = azurerm_resource_group.k8s_rg.name
-  location              = azurerm_resource_group.k8s_rg.location
+  resource_group_name   = data.azurerm_resource_group.k8s_rg.name
+  location              = data.azurerm_resource_group.k8s_rg.location
   size                  = var.vm_size_worker
   admin_username        = var.admin_username
   admin_password        = var.admin_password

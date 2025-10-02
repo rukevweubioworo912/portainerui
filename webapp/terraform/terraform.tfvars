@@ -1,5 +1,5 @@
 location            = "westus"
-resource_group_name = "k8s-rg"
+resource_group_name = "kml_rg_main-16712478f5fa440e"
 admin_username      = "k8sadmin"
 admin_password      = "MySecureP@ssw0rd123!"  
 vm_size_master      = "Standard_B2s"
