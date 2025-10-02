@@ -7,7 +7,7 @@ beforeAll(() => {
 });
 
 afterAll(() => {
-  server.close();t
+  server.close();
 });
 
 describe('Web server', () => {
