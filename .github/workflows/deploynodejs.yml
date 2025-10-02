@@ -12,7 +12,7 @@ env:
   DOCKER_IMAGE: nodejswebapp
   DOCKER_TAG: v1
   SONAR_PROJECT_KEY: nodejswebapp
-  SONAR_HOST_URL: https://sonarqube.io  
+  SONAR_HOST_URL: https://sonarcloud.io
 
 jobs:
   build-and-test:
@@ -50,11 +50,14 @@ jobs:
         run: npm test || echo "No tests configured"
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v5
         with:
-          organization: rukevweubioworo912
-          projectKey: rukevweubioworo912_portainerui
-          token: ${{ secrets.SONAR_TOKEN }}
+          args: >
+            -Dsonar.projectKey=rukevweubioworo912_portainerui
+            -Dsonar.organization=rukevweubioworo912
+            -Dsonar.host.url=https://sonarcloud.io
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
 
   build-and-push-docker:
     runs-on: ubuntu-latest
