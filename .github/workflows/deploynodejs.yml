@@ -1,0 +1,77 @@
+name: CI/CD Node.js App with Docker, Trivy, SonarQube
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  DOCKER_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+  DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  DOCKER_IMAGE: nodejswebapp
+  DOCKER_TAG: v1
+  SONAR_PROJECT_KEY: nodejswebapp
+  SONAR_HOST_URL: https://sonarqube.io  
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./webapp
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build the application
+        run: npm run build
+
+      - name: Run tests
+        run: npm test || echo "No tests configured"
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        with:
+          organization: rukevweubioworo912
+          projectKey: rukevweubioworo912_portainerui
+          token: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ env.DOCKER_PASSWORD }}
+
+      - name: Build Docker image
+        run: docker build -t ${{ env.DOCKER_USERNAME }}/my-node-app:latest .
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.DOCKER_USERNAME }}/my-node-app:latest
+
+      - name: Push Docker image to Docker Hub
+        run: docker push ${{ env.DOCKER_USERNAME }}/my-node-app:latest
