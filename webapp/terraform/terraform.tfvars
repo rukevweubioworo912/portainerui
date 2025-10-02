@@ -1,0 +1,8 @@
+location            = "westus"
+resource_group_name = "k8s-rg"
+admin_username      = "k8sadmin"
+admin_password      = "MySecureP@ssw0rd123!"  
+vm_size_master      = "Standard_B2s"
+vm_size_worker      = "Standard_B2s"
+vnet_cidr           = "10.0.0.0/16"
+subnet_cidr         = "10.0.1.0/24"
